@@ -1,141 +1,130 @@
-# Script: `.\validation.py`
-
-# Imports
+# Validate NConvert-Bash installation
 import os
 import sys
 import subprocess
-import importlib
-import pkg_resources
 
-# Directory and package constants
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, 'data')
-NCONVERT_DIR = os.path.join(DATA_DIR, 'NConvert-linux64')
-NCONVERT_PATH = os.path.join(NCONVERT_DIR, 'nconvert')
-VENV_DIR = os.path.join(BASE_DIR, 'venv')  # Added venv reference
+# Get config from installer
+try:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, current_dir)
+    from installer import REQUIRED_PACKAGES, BASE_DIR, DATA_DIR, NCONVERT_DIR, VENV_DIR
+    print("✓ Config imported")
+except ImportError as e:
+    print(f"✗ Config import failed: {e}")
+    sys.exit(1)
 
-REQUIRED_PACKAGES = [
-    'gradio',
-    'pandas==2.1.3',
-    'numpy==1.26.0',
-    'psutil==6.1.1'
-]
-PACKAGE_IMPORT_MAP = {
-    'gradio': 'gradio',
-    'pandas': 'pandas',
-    'numpy': 'numpy',
-    'psutil': 'psutil'
-}
-
-def print_status(message, success=True):
-    """Print a status message with a checkmark or cross."""
-    symbol = "✓" if success else "✗"
-    print(f"{symbol} {message}")
+def print_status(msg, ok=True):
+    print(f"{'✓' if ok else '✗'} {msg}")
 
 def check_venv():
-    """Check if virtual environment exists."""
     if not os.path.exists(VENV_DIR):
-        print_status("Virtual environment not found", success=False)
+        print_status("Venv missing", False)
         return False
-    print_status("Virtual environment exists")
+    
+    required = [
+        os.path.join(VENV_DIR, 'bin', 'python'),
+        os.path.join(VENV_DIR, 'bin', 'pip')
+    ]
+    
+    for item in required:
+        if not os.path.exists(item):
+            print_status(f"Missing: {os.path.basename(item)}", False)
+            return False
+    
+    print_status("Venv valid")
     return True
 
 def check_nconvert():
-    """Validate the presence and executability of the nconvert binary."""
-    if not os.path.isfile(NCONVERT_PATH):
-        print_status(f"nconvert not found at {NCONVERT_PATH}", success=False)
+    nconvert_path = None
+    if os.path.exists(NCONVERT_DIR):
+        for root, _, files in os.walk(NCONVERT_DIR):
+            if 'nconvert' in files:
+                nconvert_path = os.path.join(root, 'nconvert')
+                break
+    
+    if not nconvert_path:
+        print_status("NConvert missing", False)
         return False
 
-    if not os.access(NCONVERT_PATH, os.X_OK):
-        print_status(f"nconvert at {NCONVERT_PATH} is not executable", success=False)
+    if not os.access(nconvert_path, os.X_OK):
+        print_status("NConvert not executable", False)
         return False
+    
+    print_status("NConvert valid")
+    return True
 
-    try:
-        result = subprocess.run(
-            [NCONVERT_PATH, '-version'],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-        if result.returncode == 0:
-            version = result.stdout.strip()
-            print_status(f"nconvert found: {version}")
-            return True
-        else:
-            print_status(f"nconvert failed to run: {result.stderr.strip()}", success=False)
-            return False
-    except subprocess.TimeoutExpired:
-        print_status("nconvert execution timed out", success=False)
+def check_packages():
+    if not check_venv():
+        print_status("Skipped packages", False)
         return False
-    except Exception as e:
-        print_status(f"Error testing nconvert: {e}", success=False)
-        return False
+    
+    venv_python = os.path.join(VENV_DIR, 'bin', 'python')
+    all_ok = True
 
-def check_python_packages():
-    """Verify that all required Python packages are installed and importable."""
-    all_good = True
-    for package in REQUIRED_PACKAGES:
-        package_name = package.split('==')[0]
-        import_name = PACKAGE_IMPORT_MAP.get(package_name, package_name.replace('-', '_'))
+    for pkg in REQUIRED_PACKAGES:
+        name = pkg.split('==')[0]
+        cmd = f'import importlib.metadata; print(importlib.metadata.version("{name}"))'
+        
         try:
-            installed_version = pkg_resources.get_distribution(package_name).version
-            expected_version = package.split('==')[1] if '==' in package else None
-            if expected_version and installed_version != expected_version:
-                print_status(
-                    f"{package_name} version mismatch: expected {expected_version}, found {installed_version}",
-                    success=False
-                )
-                all_good = False
-                continue
+            result = subprocess.run(
+                [venv_python, '-c', cmd],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode != 0:
+                raise Exception("Version check failed")
+                
+            print_status(f"{name} installed")
+        except Exception:
+            print_status(f"{name} missing", False)
+            all_ok = False
+    
+    return all_ok
 
-            importlib.import_module(import_name)
-            print_status(f"{package_name} (version {installed_version}) is importable")
-        except pkg_resources.DistributionNotFound:
-            print_status(f"{package_name} is not installed", success=False)
-            all_good = False
-        except ImportError as e:
-            print_status(f"Failed to import {package_name}: {e}", success=False)
-            all_good = False
-        except Exception as e:
-            print_status(f"Error checking {package_name}: {e}", success=False)
-            all_good = False
-    return all_good
+def check_dirs():
+    required = [DATA_DIR, NCONVERT_DIR, VENV_DIR]
+    all_ok = True
+    
+    for dir_path in required:
+        if os.path.exists(dir_path):
+            print_status(f"Dir exists: {os.path.basename(dir_path)}")
+        else:
+            print_status(f"Missing dir: {os.path.basename(dir_path)}", False)
+            all_ok = False
+    
+    return all_ok
 
 def main():
-    """Main function to validate all components."""
     os.system('clear')
     print("="*80)
-    print("NConvert-Bash - Validation")
+    print("    NConvert-Bash - Validation")
     print("="*80)
     print("")
 
-    all_good = True
+    checks = [
+        ("Directories", check_dirs),
+        ("Virtual Env", check_venv),
+        ("NConvert", check_nconvert),
+        ("Packages", check_packages)
+    ]
 
-    # Validate virtual environment
-    print("\nChecking virtual environment...")
-    if not check_venv():
-        all_good = False
+    all_ok = True
+    for name, func in checks:
+        print(f"Checking {name}...")
+        if not func():
+            all_ok = False
 
-    # Validate nconvert
-    print("\nChecking NConvert...")
-    if not check_nconvert():
-        all_good = False
-
-    # Validate Python packages
-    print("\nChecking Python packages...")
-    if not check_python_packages():
-        all_good = False
-
-    # Final summary
-    print("\nValidation Summary")
-    print("------------------")
-    if all_good:
-        print_status("All components validated successfully")
+    print("")
+    if all_ok:
+        print_status("All checks passed")
     else:
-        print_status("Some components failed validation", success=False)
-        print("\nPlease run the installer (option 2) to fix missing or incorrect components.")
-
-    sys.exit(0 if all_good else 1)
+        print_status("Validation failed", False)
+        print("Run installer option 2")
+    print("")
+    
+    sys.exit(0 if all_ok else 1)
 
 if __name__ == "__main__":
     main()
