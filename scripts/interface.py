@@ -41,11 +41,7 @@ def create_gradio_interface():
         return result
 
     def on_exit():
-        """Handle program exit."""
-        try:
-            os._exit(0)
-        except Exception:
-            sys.exit(0)
+        sys.exit(0)  # Allows cleanup handlers to run
 
     # Create Gradio interface
     with gr.Blocks(title="NConvert-Bash Image Converter", theme=gr.themes.Default()) as demo:

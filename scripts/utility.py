@@ -93,7 +93,8 @@ def start_conversion():
     for i, input_file in enumerate(files, 1):
         try:
             # Create output filename
-            output_file = os.path.splitext(input_file)[0] + f".{FORMAT_TO.lower()}"
+            base_name = input_file.rsplit('.', 1)[0]
+            output_file = f"{base_name}.{FORMAT_TO.lower()}"
             
             # Build nconvert command
             command = [
