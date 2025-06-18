@@ -48,7 +48,7 @@ Selection; Menu Options 1-3, Exit Bash = X:
 .\launcher.py (entry point for main program. Should contain "main" function.) 
 .\scripts\temporary.py (Should contain all, global variables/constants, global maps/lists/etc.)
 .\scripts\interface.py (Should contain, all concise printed terminal text, all gradio code)
-.\scripts\utility.py (should contain all code not directly relevant to, main function, global variables/constants, global maps/lists/etc, printed terminal text, gradio code. ie other code goes in utility)
+.\scripts\utility.py (code not directly relevant to subling scripts and misc code)
 ```
 - Files Created...
 ```
