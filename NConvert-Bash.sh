@@ -34,12 +34,13 @@ deactivate_venv() {
 while true; do
     clear
     header
-    echo "    1. Launch Program"
-    echo "    2. Install Files/Libraries"
-    echo "    3. Validate Files/Libraries"
-    separator
+    printf "\n\n\n\n\n\n"
+    printf "    1. Launch Main Program \n\n"
+    printf "    2. Install Files/Libraries \n\n"
+    printf "    3. Validate Files/Libraries \n"
+    printf "\n\n\n\n\n\n"
+	separator
     read -p "Selection; Menu Options 1-3, Exit Bash = X: " choice
-
     case $choice in
         1)
             if check_venv; then
