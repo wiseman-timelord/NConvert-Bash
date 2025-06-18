@@ -5,6 +5,34 @@ Status: Alpha (working on: primary testing)
 ### Description:
 Its a Python Gradio interface for converting MANY common/rare image formats to MANY common/rare image formats, all made possible through `XnView MP` linux native command line capable viewer. The frontend/installer provides a user-friendly menu to set the source folder, input file format, and desired output format. The scripts ensures efficient and seamless conversion and management of image files, making it a practical tool for users needing to process many images in multiple common/rare formats
 
+### Preview:
+- Bash menu is looking good...
+```
+================================================================================
+    NConvert-Bash
+================================================================================
+
+
+
+
+
+
+    1. Launch Main Program 
+
+    2. Install Files/Libraries 
+
+    3. Validate Files/Libraries 
+
+
+
+
+
+
+--------------------------------------------------------------------------------
+Selection; Menu Options 1-3, Exit Bash = X: 
+
+```
+
 ## Requirements:
 - Linux - It will be tested on Ubuntu 24.10.
 - [NConvert](https://www.xnview.com/en/nconvert) - ~500 image formats supported (installed by installer).
@@ -12,33 +40,5 @@ Its a Python Gradio interface for converting MANY common/rare image formats to M
 - Python Libraries - Installed from the created `.\requirements.txt`, you can inspect them there if you like.
 
 ### Development
-1. If possible we will want to use conversion library for linux, we could silent install it to the "./data", then run it as a command-line tool, with the file formats setup the same as before, maybe 5 more, that are common and not in the lists already. it would probably be a better idea to keep things linux based. Here is the link `https://www.xnview.com/download.php?file=XnViewMP-linux-x64.tgz`, it will need to go in the installer.
-2. We are going to change the file structure....
-```
-.\NConvert-Bash.sh (bash script, header function, separator function, numbered options menu, "1. Run Main Program", "2. Install Files/Libraries", "3. Files/Libraries Validation".  
-.\installer.py (standalone installer script)
-.\validation.py (checkse libraries and files are present and correct, standalone)
-.\launcher.py (entry point for main program. Should contain "main" function.) 
-.\scripts\temporary.py (Should contain all, global variables/constants, global maps/lists/etc.)
-.\scripts\interface.py (Should contain, all concise printed terminal text, all gradio code)
-.\scripts\utility.py (should contain all code not directly relevant to, main function, global variables/constants, global maps/lists/etc, printed terminal text, gradio code. ie other code goes in utility)
-```
-3. we would have a menu for the bash script...
-
-```
-================================================================================
-    NConvert-Bash
-================================================================================
-
-    1. Launch Program
- 
-    2. Install Files/Libraries
- 
-    3. Validate Files/Libraries
-
---------------------------------------------------------------------------------
-Selection; Menu Options 1-3, Exit Batch = X:
-
-```
-4. The individual scripts require re-fractoring and converting.
-5. the scripts will require to be checked over, ensuring that traces of windows code are, as possible replaced with relating linux/ubuntu24 compatible code.
+The current plan is...
+1. Testing/bugfixing/improving, until working.
