@@ -33,8 +33,10 @@ def find_available_port(start_port=7860, max_attempts=10):
 
 def main():
     """Main entry point for launching the NConvert-Bash program."""
-    print("NConvert-Bash Program")
-    print("=====================")
+    os.system('clear')
+    print("="*80)
+    print("NConvert-Bash - Main Program")
+    print("="*80)
     
     # Verify virtual environment exists
     if not os.path.exists(VENV_DIR):

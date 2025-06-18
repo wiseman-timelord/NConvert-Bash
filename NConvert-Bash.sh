@@ -47,20 +47,23 @@ while true; do
                 activate_venv
                 venv/bin/python launcher.py
                 deactivate_venv
-                read -p "Press Enter to continue..."
+                separator
+				read -p "Press Enter to continue..."
             fi
             ;;
         2)
             python3 installer.py
             deactivate_venv  # Ensure venv is deactivated after installer
-            read -p "Press Enter to continue..."
+            separator
+			read -p "Press Enter to continue..."
             ;;
         3)
             if check_venv; then
                 activate_venv
-                venv/bin/python validation.py
+                venv/bin/python validater.py
                 deactivate_venv
-                read -p "Press Enter to continue..."
+                separator
+				read -p "Press Enter to continue..."
             fi
             ;;
         X|x)

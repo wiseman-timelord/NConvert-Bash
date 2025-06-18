@@ -567,8 +567,11 @@ def verify_installation() -> bool:
     return True
 
 def main():
-    print("NConvert-Bash Installer")
-    print("=======================")
+    os.system('clear')
+    print("="*80)
+    print("NConvert-Bash - Installation")
+    print("="*80)
+    print("")
     
     # Verify Linux system
     if platform.system() != 'Linux':
@@ -618,20 +621,9 @@ def main():
     # Clean up temporary files
     cleanup_temp_files()
 
-    print("\n" + "="*50)
-    print("Installation completed successfully!")
-    print("="*50)
-    print("Directory structure created:")
-    print(f"  - {DATA_DIR}")
-    print(f"  - {TEMP_DIR}")
-    print(f"  - {NCONVERT_DIR}")
-    print(f"  - {VENV_DIR}")
-    print("\nNConvert binary location:")
-    for root, dirs, files in os.walk(NCONVERT_DIR):
-        if 'nconvert' in files:
-            print(f"  - {os.path.join(root, 'nconvert')}")
-            break
-    print("\nYou can now run the program using: ./NConvert-Bash.sh")
+    print("\n" + "-"*50)
+    print("\nInstallation completed successfully!")
+    print("\nInstall Processes Finished\n\n")
 
 if __name__ == "__main__":
     main()

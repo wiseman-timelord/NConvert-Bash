@@ -103,8 +103,11 @@ def check_python_packages():
 
 def main():
     """Main function to validate all components."""
-    print("NConvert-Bash Validation")
-    print("=======================")
+    os.system('clear')
+    print("="*80)
+    print("NConvert-Bash - Validation")
+    print("="*80)
+    print("")
 
     all_good = True
 
