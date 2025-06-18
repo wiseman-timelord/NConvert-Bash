@@ -1,4 +1,4 @@
-# Script: `.\validate.py`
+# Script: `.\validation.py`
 
 # Imports
 import os
@@ -7,11 +7,13 @@ import subprocess
 import importlib
 import pkg_resources
 
-# Directory and package constants consistent with installer.py
+# Directory and package constants
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 NCONVERT_DIR = os.path.join(DATA_DIR, 'NConvert-linux64')
 NCONVERT_PATH = os.path.join(NCONVERT_DIR, 'nconvert')
+VENV_DIR = os.path.join(BASE_DIR, 'venv')  # Added venv reference
+
 REQUIRED_PACKAGES = [
     'gradio',
     'pandas==2.1.3',
@@ -29,6 +31,14 @@ def print_status(message, success=True):
     """Print a status message with a checkmark or cross."""
     symbol = "✓" if success else "✗"
     print(f"{symbol} {message}")
+
+def check_venv():
+    """Check if virtual environment exists."""
+    if not os.path.exists(VENV_DIR):
+        print_status("Virtual environment not found", success=False)
+        return False
+    print_status("Virtual environment exists")
+    return True
 
 def check_nconvert():
     """Validate the presence and executability of the nconvert binary."""
@@ -68,7 +78,6 @@ def check_python_packages():
         package_name = package.split('==')[0]
         import_name = PACKAGE_IMPORT_MAP.get(package_name, package_name.replace('-', '_'))
         try:
-            # Check if package is installed with correct version
             installed_version = pkg_resources.get_distribution(package_name).version
             expected_version = package.split('==')[1] if '==' in package else None
             if expected_version and installed_version != expected_version:
@@ -79,7 +88,6 @@ def check_python_packages():
                 all_good = False
                 continue
 
-            # Try importing the package
             importlib.import_module(import_name)
             print_status(f"{package_name} (version {installed_version}) is importable")
         except pkg_resources.DistributionNotFound:
@@ -99,6 +107,11 @@ def main():
     print("=======================")
 
     all_good = True
+
+    # Validate virtual environment
+    print("\nChecking virtual environment...")
+    if not check_venv():
+        all_good = False
 
     # Validate nconvert
     print("\nChecking NConvert...")

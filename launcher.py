@@ -11,6 +11,7 @@ from scripts.interface import create_gradio_interface
 # Define base and workspace directories
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_DIR = os.path.join(BASE_DIR, 'workspace')
+VENV_DIR = os.path.join(BASE_DIR, 'venv')  # Added venv reference
 
 def check_port(port):
     """Check if the specified port is in use."""
@@ -34,6 +35,11 @@ def main():
     """Main entry point for launching the NConvert-Bash program."""
     print("NConvert-Bash Program")
     print("=====================")
+    
+    # Verify virtual environment exists
+    if not os.path.exists(VENV_DIR):
+        print("ERROR: Virtual environment not found. Please run the installer first.")
+        sys.exit(1)
 
     # Create workspace directory
     try:
@@ -57,13 +63,12 @@ def main():
 
     # Launch Gradio interface
     try:
-        # Open browser after a short delay
         Timer(2, lambda: webbrowser.open(url)).start()
         demo.launch(
             server_name="localhost",
             server_port=port,
             share=False,
-            inbrowser=False,  # Handled by webbrowser.open
+            inbrowser=False,
             show_error=True,
             quiet=False
         )

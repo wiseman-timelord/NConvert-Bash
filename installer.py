@@ -15,12 +15,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 NCONVERT_DIR = os.path.join(DATA_DIR, 'NConvert-linux64')
 NCONVERT_URL = "https://download.xnview.com/old_versions/NConvert/NConvert-7.221-linux64.tgz"
+VENV_DIR = os.path.join(BASE_DIR, 'venv')  # Added venv directory
 
 # System requirements
 REQUIRED_SYSTEM_DEPS = {
     'tar': {'ubuntu': 'tar', 'test': ['tar', '--version']},
     'wget': {'ubuntu': 'wget', 'test': ['wget', '--version']},
-    'tkinter': {'ubuntu': 'python3-tk', 'test': ['python3', '-c', '"import tkinter; print(tkinter.TkVersion)"']}
+    'python3-venv': {'ubuntu': 'python3-venv', 'test': ['python3', '-m', 'venv', '--help']}  # Added venv dependency
 }
 
 # Python package requirements
@@ -38,7 +39,6 @@ def check_system_dependencies() -> Tuple[bool, List[str]]:
     
     for dep, config in REQUIRED_SYSTEM_DEPS.items():
         try:
-            # First try direct command test
             result = subprocess.run(
                 config['test'],
                 stdout=subprocess.PIPE,
@@ -108,24 +108,45 @@ def install_nconvert() -> bool:
     
     return False
 
-def install_python_packages() -> bool:
-    """Install required Python packages."""
-    print("\nInstalling Python packages...")
+def create_virtual_environment() -> bool:
+    """Create a Python virtual environment."""
+    print("\nCreating Python virtual environment...")
     try:
-        requirements_path = os.path.join(DATA_DIR, 'requirements.txt')
-        with open(requirements_path, 'w') as f:
-            for package in REQUIRED_PACKAGES:
-                f.write(f"{package}\n")
-
-        result = subprocess.run(
-            [sys.executable, '-m', 'pip', 'install', '-r', requirements_path],
-            check=True,
-            text=True
-        )
-        print("✓ Python packages installed successfully")
+        # Create venv if it doesn't exist
+        if not os.path.exists(VENV_DIR):
+            result = subprocess.run(
+                [sys.executable, '-m', 'venv', VENV_DIR],
+                check=True,
+                text=True
+            )
+            print(f"✓ Virtual environment created at {VENV_DIR}")
+        else:
+            print("✓ Virtual environment already exists")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ Failed to install Python packages: {e.stderr}")
+        print(f"✗ Failed to create virtual environment: {e}")
+        return False
+
+def install_python_packages() -> bool:
+    """Install required Python packages in virtual environment."""
+    print("\nInstalling Python packages in virtual environment...")
+    try:
+        # Use venv pip executable
+        pip_executable = os.path.join(VENV_DIR, 'bin', 'pip')
+        
+        # Install each package individually for better error handling
+        for package in REQUIRED_PACKAGES:
+            result = subprocess.run(
+                [pip_executable, 'install', package],
+                check=True,
+                text=True
+            )
+            print(f"✓ Installed {package}")
+        
+        print("✓ All Python packages installed successfully")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"✗ Failed to install Python packages: {e}")
         return False
 
 def main():
@@ -150,6 +171,10 @@ def main():
             
     # Install NConvert
     if not install_nconvert():
+        sys.exit(1)
+        
+    # Create virtual environment
+    if not create_virtual_environment():
         sys.exit(1)
         
     # Install Python packages

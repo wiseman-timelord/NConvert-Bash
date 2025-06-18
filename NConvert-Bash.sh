@@ -10,7 +10,29 @@ separator() {
     echo "--------------------------------------------------------------------------------"
 }
 
+check_venv() {
+    if [ ! -d "venv" ]; then
+        echo "ERROR: Virtual environment not found. Please select Install first."
+        sleep 3
+        return 1
+    fi
+    return 0
+}
+
+activate_venv() {
+    if [ -f "venv/bin/activate" ]; then
+        source venv/bin/activate
+    fi
+}
+
+deactivate_venv() {
+    if command -v deactivate &>/dev/null; then
+        deactivate
+    fi
+}
+
 while true; do
+    clear
     header
     echo "    1. Launch Program"
     echo "    2. Install Files/Libraries"
@@ -20,19 +42,29 @@ while true; do
 
     case $choice in
         1)
-            python3 launcher.py
+            if check_venv; then
+                activate_venv
+                venv/bin/python launcher.py
+                deactivate_venv
+            fi
             ;;
         2)
             python3 installer.py
+            deactivate_venv  # Ensure venv is deactivated after installer
             ;;
         3)
-            python3 validation.py
+            if check_venv; then
+                activate_venv
+                venv/bin/python validation.py
+                deactivate_venv
+            fi
             ;;
         X|x)
             exit 0
             ;;
         *)
             echo "Invalid selection. Please choose 1, 2, 3, or X."
+            sleep 1
             ;;
     esac
 done
