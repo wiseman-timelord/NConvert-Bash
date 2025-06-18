@@ -1,5 +1,5 @@
 # NConvert-Bash
-Status: Alpha (working on: converting a windows frontend/installer for "NConvert", to being a linux version with instead "XnView MP", compatible with ubuntu 24.10)
+Status: Alpha (working on: converting a windows frontend/installer for "NConvert", to being a linux version, compatible with ubuntu 24.10)
 
 
 ### Description:
@@ -12,7 +12,7 @@ Its a Python Gradio interface for converting MANY common/rare image formats to M
 - Python Libraries - Installed from the created `.\requirements.txt`, you can inspect them there if you like.
 
 ### Development
-1. If possible we will want to use "XnView MP" to as a conversion library for linux, we could silent install it to the "./venv", then run it as a command-line tool, with the file formats setup the same as before, maybe 5 more, that are common and not in the lists already. it would probably be a better idea to keep things linux based. Here is the link `https://www.xnview.com/download.php?file=XnViewMP-linux-x64.tgz`, it will need to go in the installer.
+1. If possible we will want to use conversion library for linux, we could silent install it to the "./data", then run it as a command-line tool, with the file formats setup the same as before, maybe 5 more, that are common and not in the lists already. it would probably be a better idea to keep things linux based. Here is the link `https://www.xnview.com/download.php?file=XnViewMP-linux-x64.tgz`, it will need to go in the installer.
 2. We are going to change the file structure....
 ```
 .\NConvert-Bash.sh (bash script, header function, separator function, numbered options menu, "1. Run Main Program", "2. Install Files/Libraries", "3. Files/Libraries Validation".  
