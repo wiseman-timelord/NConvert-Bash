@@ -5,6 +5,12 @@ Status: Alpha (working on: converting a windows frontend/installer for "NConvert
 ### Description:
 Its a Python Gradio interface for converting MANY common/rare image formats to MANY common/rare image formats, all made possible through `XnView MP` linux native command line capable viewer. The frontend/installer provides a user-friendly menu to set the source folder, input file format, and desired output format. The scripts ensures efficient and seamless conversion and management of image files, making it a practical tool for users needing to process many images in multiple common/rare formats
 
+## Requirements:
+- Linux - It will be tested on Ubuntu 24.10.
+- [NConvert](https://www.xnview.com/en/nconvert) - ~500 image formats supported (installed by installer).
+- Python 3.8+ - Compatible with what are now the lower versions of python.
+- Python Libraries - Installed from the created `.\requirements.txt`, you can inspect them there if you like.
+
 ### Development
 1. If possible we will want to use "XnView MP" to as a conversion library for linux, we could silent install it to the "./venv", then run it as a command-line tool, with the file formats setup the same as before, maybe 5 more, that are common and not in the lists already. it would probably be a better idea to keep things linux based. Here is the link `https://www.xnview.com/download.php?file=XnViewMP-linux-x64.tgz`, it will need to go in the installer.
 2. We are going to change the file structure....
