@@ -6,22 +6,29 @@ import sys
 import subprocess
 import urllib.request
 import tarfile
-import tempfile
 import shutil
 import platform
+import time
 from typing import List, Tuple
 
+# Directory structure
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
+TEMP_DIR = os.path.join(DATA_DIR, 'temp')
 NCONVERT_DIR = os.path.join(DATA_DIR, 'NConvert-linux64')
-NCONVERT_URL = "https://download.xnview.com/old_versions/NConvert/NConvert-7.221-linux64.tgz"
-VENV_DIR = os.path.join(BASE_DIR, 'venv')  # Added venv directory
+VENV_DIR = os.path.join(BASE_DIR, 'venv')
+
+# URLs and downloads
+NCONVERT_URL = "https://download.xnview.com/NConvert-linux64.tgz"
+NCONVERT_ARCHIVE = os.path.join(TEMP_DIR, 'NConvert-linux64.tgz')
 
 # System requirements
 REQUIRED_SYSTEM_DEPS = {
     'tar': {'ubuntu': 'tar', 'test': ['tar', '--version']},
     'wget': {'ubuntu': 'wget', 'test': ['wget', '--version']},
-    'python3-venv': {'ubuntu': 'python3-venv', 'test': ['python3', '-m', 'venv', '--help']}  # Added venv dependency
+    'curl': {'ubuntu': 'curl', 'test': ['curl', '--version']},
+    'python3-venv': {'ubuntu': 'python3-venv', 'test': ['python3', '-m', 'venv', '--help']},
+    'python3-pip': {'ubuntu': 'python3-pip', 'test': ['python3', '-m', 'pip', '--version']}
 }
 
 # Python package requirements
@@ -31,6 +38,73 @@ REQUIRED_PACKAGES = [
     'numpy==1.26.0',
     'psutil==6.1.1'
 ]
+
+def cleanup_existing_installation():
+    """Clean up any existing installation for fresh install."""
+    print("\nCleaning up existing installation...")
+    
+    # Remove virtual environment
+    if os.path.exists(VENV_DIR):
+        try:
+            shutil.rmtree(VENV_DIR)
+            print("✓ Removed existing virtual environment")
+        except Exception as e:
+            print(f"✗ Failed to remove existing venv: {e}")
+            return False
+    
+    # Remove data directory (including NConvert and temp)
+    if os.path.exists(DATA_DIR):
+        try:
+            shutil.rmtree(DATA_DIR)
+            print("✓ Removed existing data directory")
+        except Exception as e:
+            print(f"✗ Failed to remove existing data directory: {e}")
+            return False
+    
+    return True
+
+def create_directory_structure():
+    """Create all necessary directories for the project."""
+    print("\nCreating directory structure...")
+    directories = [
+        DATA_DIR,
+        TEMP_DIR,
+        # VENV_DIR will be created by venv module
+    ]
+    
+    for directory in directories:
+        try:
+            os.makedirs(directory, exist_ok=True)
+            print(f"✓ Created/verified directory: {directory}")
+        except Exception as e:
+            print(f"✗ Failed to create directory {directory}: {e}")
+            return False
+    
+    return True
+
+def cleanup_temp_files():
+    """Clean up temporary files after installation."""
+    print("\nCleaning up temporary files...")
+    try:
+        if os.path.exists(NCONVERT_ARCHIVE):
+            os.remove(NCONVERT_ARCHIVE)
+            print("✓ Removed temporary download file")
+        
+        # Clean any other temp files
+        if os.path.exists(TEMP_DIR):
+            for file in os.listdir(TEMP_DIR):
+                file_path = os.path.join(TEMP_DIR, file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                    print(f"✓ Removed temporary file: {file}")
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+                    print(f"✓ Removed temporary directory: {file}")
+        
+        return True
+    except Exception as e:
+        print(f"✗ Error cleaning temp files: {e}")
+        return False
 
 def check_system_dependencies() -> Tuple[bool, List[str]]:
     """Check for required system dependencies."""
@@ -43,13 +117,14 @@ def check_system_dependencies() -> Tuple[bool, List[str]]:
                 config['test'],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
+                timeout=10
             )
             if result.returncode != 0:
                 raise subprocess.CalledProcessError(result.returncode, config['test'])
                 
             print(f"✓ {dep} is available")
-        except (subprocess.CalledProcessError, FileNotFoundError):
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
             missing.append(config['ubuntu'])
             print(f"✗ {dep} not found")
     
@@ -62,49 +137,313 @@ def install_system_dependencies(packages: List[str]) -> bool:
         
     print(f"\nInstalling missing system packages: {', '.join(packages)}")
     try:
+        # Update package list
+        print("Updating package list...")
+        result = subprocess.run(
+            ['sudo', 'apt-get', 'update'],
+            check=True,
+            text=True,
+            timeout=300
+        )
+        
+        # Install packages
+        print("Installing packages...")
         result = subprocess.run(
             ['sudo', 'apt-get', 'install', '-y'] + packages,
             check=True,
-            text=True
+            text=True,
+            timeout=600
         )
-        return result.returncode == 0
+        
+        print("✓ System packages installed successfully")
+        return True
     except subprocess.CalledProcessError as e:
-        print(f"Failed to install system packages: {e}")
+        print(f"✗ Failed to install system packages: {e}")
         return False
+    except subprocess.TimeoutExpired:
+        print("✗ Package installation timed out")
+        return False
+
+class DownloadProgressBar:
+    """Compact progress bar for file downloads - fits in 80 char width."""
+    
+    def __init__(self, total_size: int, existing_size: int = 0):
+        self.total_size = total_size
+        self.downloaded = existing_size
+        self.start_time = time.time()
+        self.last_update = 0
+        
+    def update(self, chunk_size: int):
+        """Update progress bar with new chunk."""
+        self.downloaded += chunk_size
+        current_time = time.time()
+        
+        # Update every 0.5 seconds to avoid too frequent updates
+        if current_time - self.last_update < 0.5 and self.downloaded < self.total_size:
+            return
+            
+        self.last_update = current_time
+        self.display()
+        
+    def display(self):
+        """Display the current progress."""
+        elapsed_time = time.time() - self.start_time
+        
+        # Calculate progress percentage
+        if self.total_size > 0:
+            progress = (self.downloaded / self.total_size) * 100
+        else:
+            progress = 0
+        
+        # Create progress bar (10 characters)
+        bar_length = 10
+        filled_length = int(bar_length * self.downloaded // self.total_size) if self.total_size > 0 else 0
+        bar = '█' * filled_length + '░' * (bar_length - filled_length)
+        
+        # Format sizes
+        def format_size(size):
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size < 1024.0:
+                    return f"{size:.1f}{unit}"
+                size /= 1024.0
+            return f"{size:.1f}TB"
+        
+        # Calculate speed
+        if elapsed_time > 0:
+            speed = self.downloaded / elapsed_time
+        else:
+            speed = 0
+        
+        # Format time
+        def format_time(seconds):
+            if seconds < 60:
+                return f"{seconds:.0f}s"
+            elif seconds < 3600:
+                return f"{seconds//60:.0f}m{seconds%60:.0f}s"
+            else:
+                return f"{seconds//3600:.0f}h{(seconds%3600)//60:.0f}m"
+        
+        # Calculate ETA
+        if speed > 0 and self.downloaded < self.total_size:
+            remaining_time = (self.total_size - self.downloaded) / speed
+            eta_str = format_time(remaining_time)
+        else:
+            eta_str = "0s"
+        
+        # Compact format: [██████░░░░] 64.2%, 9.8MB/15.3MB, 1.0MB/s, 12s/18s
+        if self.downloaded < self.total_size:
+            progress_line = (
+                f"\r[{bar}] {progress:4.1f}%, "
+                f"{format_size(self.downloaded)}/{format_size(self.total_size)}, "
+                f"{format_size(speed)}/s, "
+                f"{format_time(elapsed_time)}/{eta_str}"
+            )
+        else:
+            progress_line = (
+                f"\r[{bar}] 100.0%, "
+                f"{format_size(self.downloaded)}/{format_size(self.total_size)}, "
+                f"Done in {format_time(elapsed_time)}"
+            )
+        
+        # Ensure we fit in 80 characters and clear any leftover text
+        if len(progress_line) > 79:
+            progress_line = progress_line[:76] + "..."
+        progress_line = progress_line.ljust(79)
+        
+        print(progress_line, end='', flush=True)
+        
+        # Print newline when complete
+        if self.downloaded >= self.total_size:
+            print()
+
+def download_with_resume(url: str, filepath: str, max_retries: int = 3) -> bool:
+    """Download a file with resume capability and retry logic."""
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                print(f"\nRetry attempt {attempt + 1}/{max_retries}...")
+            
+            # Check if file already exists (for resume)
+            existing_size = 0
+            if os.path.exists(filepath):
+                existing_size = os.path.getsize(filepath)
+                print(f"Found existing file: {existing_size:,} bytes")
+            
+            # Create request with resume header if file exists
+            req = urllib.request.Request(url)
+            req.add_header('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36')
+            
+            if existing_size > 0:
+                req.add_header('Range', f'bytes={existing_size}-')
+            
+            # Open connection
+            with urllib.request.urlopen(req, timeout=60) as response:
+                # Handle partial content (206) or full content (200)
+                if response.code == 206:
+                    # Partial content - resuming
+                    content_range = response.headers.get('Content-Range', '')
+                    if content_range:
+                        # Parse "bytes start-end/total"
+                        total_size = int(content_range.split('/')[-1])
+                    else:
+                        total_size = existing_size + int(response.headers.get('Content-Length', 0))
+                    print(f"Resuming download from byte {existing_size:,}")
+                elif response.code == 200:
+                    # Full content
+                    if existing_size > 0:
+                        print("Server doesn't support resume, restarting download")
+                        os.remove(filepath)
+                        existing_size = 0
+                    total_size = int(response.headers.get('Content-Length', 0))
+                else:
+                    raise Exception(f"Unexpected HTTP status: {response.code}")
+                
+                print(f"Total file size: {total_size:,} bytes ({total_size/1024/1024:.1f} MB)")
+                
+                # Initialize progress bar
+                progress_bar = DownloadProgressBar(total_size, existing_size)
+                
+                # Open file in append mode if resuming, write mode if starting fresh
+                file_mode = 'ab' if existing_size > 0 else 'wb'
+                with open(filepath, file_mode) as f:
+                    chunk_size = 32768  # 32KB chunks
+                    
+                    while True:
+                        chunk = response.read(chunk_size)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        progress_bar.update(len(chunk))
+                
+                # Verify download completeness
+                actual_size = os.path.getsize(filepath)
+                if total_size > 0 and actual_size != total_size:
+                    raise Exception(f"Download incomplete: got {actual_size:,} bytes, expected {total_size:,}")
+                
+                print("✓ Download completed successfully")
+                return True
+                
+        except urllib.error.HTTPError as e:
+            if e.code == 416:  # Range Not Satisfiable - file might be complete
+                actual_size = os.path.getsize(filepath) if os.path.exists(filepath) else 0
+                # Try to get the real file size
+                try:
+                    head_req = urllib.request.Request(url)
+                    head_req.add_header('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64)')
+                    head_req.get_method = lambda: 'HEAD'
+                    with urllib.request.urlopen(head_req, timeout=30) as head_response:
+                        expected_size = int(head_response.headers.get('Content-Length', 0))
+                        if actual_size == expected_size:
+                            print("✓ File already completely downloaded")
+                            return True
+                except:
+                    pass
+            print(f"✗ Download attempt {attempt + 1} failed: HTTP {e.code} - {e.reason}")
+        except Exception as e:
+            print(f"✗ Download attempt {attempt + 1} failed: {e}")
+            
+        if attempt < max_retries - 1:
+            print("Waiting 2 seconds before retry...")
+            time.sleep(2)
+        else:
+            print("All download attempts failed")
+            # Clean up corrupted file on final failure
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            return False
+    
+    return False
 
 def install_nconvert() -> bool:
     """Download and install NConvert binary."""
     print("\nInstalling NConvert...")
     try:
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            temp_path = temp_file.name
-            print(f"Downloading to {temp_path}...")
-            urllib.request.urlretrieve(NCONVERT_URL, temp_path)
+        # Download to our temp directory
+        print(f"Downloading NConvert from {NCONVERT_URL}...")
+        print(f"Saving to {NCONVERT_ARCHIVE}...")
+        print()  # Empty line before progress bar
+        
+        # Download with resume capability
+        if not download_with_resume(NCONVERT_URL, NCONVERT_ARCHIVE):
+            raise Exception("Failed to download NConvert after multiple attempts")
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            print(f"Extracting to {temp_dir}...")
-            with tarfile.open(temp_path, 'r:gz') as tar:
-                tar.extractall(temp_dir)
+        # Verify download exists and has content
+        if not os.path.exists(NCONVERT_ARCHIVE) or os.path.getsize(NCONVERT_ARCHIVE) == 0:
+            raise Exception("Downloaded file is empty or missing")
 
-            extracted_items = os.listdir(temp_dir)
-            if len(extracted_items) == 1 and os.path.isdir(os.path.join(temp_dir, extracted_items[0])):
-                source_dir = os.path.join(temp_dir, extracted_items[0])
-                if os.path.exists(NCONVERT_DIR):
-                    shutil.rmtree(NCONVERT_DIR)
-                shutil.move(source_dir, NCONVERT_DIR)
+        # Extract to temp directory first
+        print(f"Extracting archive...")
+        extract_temp_dir = os.path.join(TEMP_DIR, 'extract')
+        os.makedirs(extract_temp_dir, exist_ok=True)
+        
+        # More robust extraction with better error handling
+        try:
+            with tarfile.open(NCONVERT_ARCHIVE, 'r:gz') as tar:
+                # Security check: ensure no path traversal
+                for member in tar.getmembers():
+                    if os.path.isabs(member.name) or ".." in member.name:
+                        raise Exception(f"Unsafe path in archive: {member.name}")
                 
-                # Make nconvert executable
-                nconvert_path = os.path.join(NCONVERT_DIR, 'nconvert')
-                if os.path.isfile(nconvert_path):
-                    os.chmod(nconvert_path, 0o755)
-                    print("✓ NConvert installed and made executable")
-                    return True
-            else:
-                print("✗ Unexpected archive structure")
+                # Extract all members
+                tar.extractall(extract_temp_dir)
+                print("✓ Archive extracted successfully")
                 
-        os.remove(temp_path)
+        except tarfile.ReadError as e:
+            raise Exception(f"Archive appears to be corrupted or incomplete: {e}")
+        except Exception as e:
+            raise Exception(f"Failed to extract archive: {e}")
+
+        # Find the extracted directory or files
+        extracted_items = os.listdir(extract_temp_dir)
+        if not extracted_items:
+            raise Exception("No files extracted from archive")
+            
+        # Remove existing NConvert directory if it exists
+        if os.path.exists(NCONVERT_DIR):
+            shutil.rmtree(NCONVERT_DIR)
+            print("✓ Removed existing NConvert installation")
+        
+        # Handle different archive structures
+        if len(extracted_items) == 1 and os.path.isdir(os.path.join(extract_temp_dir, extracted_items[0])):
+            # Archive contains a directory
+            source_dir = os.path.join(extract_temp_dir, extracted_items[0])
+            shutil.move(source_dir, NCONVERT_DIR)
+        else:
+            # Archive contains files directly
+            os.makedirs(NCONVERT_DIR, exist_ok=True)
+            for item in extracted_items:
+                source_path = os.path.join(extract_temp_dir, item)
+                dest_path = os.path.join(NCONVERT_DIR, item)
+                if os.path.isdir(source_path):
+                    shutil.move(source_path, dest_path)
+                else:
+                    shutil.move(source_path, dest_path)
+        
+        # Find and make nconvert executable
+        nconvert_path = None
+        for root, dirs, files in os.walk(NCONVERT_DIR):
+            if 'nconvert' in files:
+                nconvert_path = os.path.join(root, 'nconvert')
+                break
+        
+        if nconvert_path and os.path.isfile(nconvert_path):
+            os.chmod(nconvert_path, 0o755)
+            print("✓ NConvert installed and made executable")
+            
+            # Clean up extraction temp directory
+            if os.path.exists(extract_temp_dir):
+                shutil.rmtree(extract_temp_dir)
+            return True
+        else:
+            print("✗ nconvert binary not found in extracted files")
+            
     except Exception as e:
         print(f"✗ NConvert installation failed: {e}")
+        # Clean up on failure
+        if os.path.exists(NCONVERT_DIR):
+            shutil.rmtree(NCONVERT_DIR)
+        if os.path.exists(NCONVERT_ARCHIVE):
+            os.remove(NCONVERT_ARCHIVE)
     
     return False
 
@@ -112,19 +451,20 @@ def create_virtual_environment() -> bool:
     """Create a Python virtual environment."""
     print("\nCreating Python virtual environment...")
     try:
-        # Create venv if it doesn't exist
-        if not os.path.exists(VENV_DIR):
-            result = subprocess.run(
-                [sys.executable, '-m', 'venv', VENV_DIR],
-                check=True,
-                text=True
-            )
-            print(f"✓ Virtual environment created at {VENV_DIR}")
-        else:
-            print("✓ Virtual environment already exists")
+        # Create new venv
+        result = subprocess.run(
+            [sys.executable, '-m', 'venv', VENV_DIR],
+            check=True,
+            text=True,
+            timeout=120
+        )
+        print(f"✓ Virtual environment created at {VENV_DIR}")
         return True
     except subprocess.CalledProcessError as e:
         print(f"✗ Failed to create virtual environment: {e}")
+        return False
+    except subprocess.TimeoutExpired:
+        print("✗ Virtual environment creation timed out")
         return False
 
 def install_python_packages() -> bool:
@@ -134,20 +474,97 @@ def install_python_packages() -> bool:
         # Use venv pip executable
         pip_executable = os.path.join(VENV_DIR, 'bin', 'pip')
         
+        if not os.path.exists(pip_executable):
+            print(f"✗ Pip executable not found at {pip_executable}")
+            return False
+        
+        # Upgrade pip first
+        print("Upgrading pip...")
+        subprocess.run([pip_executable, 'install', '--upgrade', 'pip'], 
+                      check=True, text=True, timeout=120)
+        print("✓ Upgraded pip")
+        
         # Install each package individually for better error handling
         for package in REQUIRED_PACKAGES:
-            result = subprocess.run(
-                [pip_executable, 'install', package],
-                check=True,
-                text=True
-            )
-            print(f"✓ Installed {package}")
+            print(f"Installing {package}...")
+            try:
+                result = subprocess.run(
+                    [pip_executable, 'install', package],
+                    check=True,
+                    text=True,
+                    timeout=300
+                )
+                print(f"✓ Installed {package}")
+            except subprocess.TimeoutExpired:
+                print(f"✗ Installation of {package} timed out")
+                return False
         
         print("✓ All Python packages installed successfully")
         return True
     except subprocess.CalledProcessError as e:
         print(f"✗ Failed to install Python packages: {e}")
         return False
+
+def verify_installation() -> bool:
+    """Verify that all components are installed correctly."""
+    print("\nVerifying installation...")
+    
+    # Check NConvert
+    nconvert_path = None
+    for root, dirs, files in os.walk(NCONVERT_DIR):
+        if 'nconvert' in files:
+            nconvert_path = os.path.join(root, 'nconvert')
+            break
+    
+    if nconvert_path and os.path.isfile(nconvert_path) and os.access(nconvert_path, os.X_OK):
+        print("✓ NConvert binary is present and executable")
+        try:
+            # Test NConvert execution
+            result = subprocess.run([nconvert_path, '-help'], 
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode == 0 or 'nconvert' in result.stdout.lower():
+                print("✓ NConvert responds correctly")
+            else:
+                print("⚠ NConvert may not be working properly")
+        except Exception as e:
+            print(f"⚠ Could not test NConvert execution: {e}")
+    else:
+        print("✗ NConvert binary not found or not executable")
+        return False
+    
+    # Check virtual environment
+    venv_python = os.path.join(VENV_DIR, 'bin', 'python')
+    if os.path.isfile(venv_python):
+        print("✓ Virtual environment Python executable found")
+    else:
+        print("✗ Virtual environment Python not found")
+        return False
+    
+    # Check if required packages are installed
+    pip_executable = os.path.join(VENV_DIR, 'bin', 'pip')
+    try:
+        result = subprocess.run(
+            [pip_executable, 'list'],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=30
+        )
+        installed_packages = result.stdout.lower()
+        
+        for package in REQUIRED_PACKAGES:
+            package_name = package.split('==')[0].lower()
+            if package_name in installed_packages:
+                print(f"✓ {package_name} is installed")
+            else:
+                print(f"✗ {package_name} not found")
+                return False
+                
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+        print(f"✗ Could not verify Python packages: {e}")
+        return False
+    
+    return True
 
 def main():
     print("NConvert-Bash Installer")
@@ -158,12 +575,21 @@ def main():
         print("Error: This installer is only for Linux systems")
         sys.exit(1)
 
-    # Ensure data directory exists
-    os.makedirs(DATA_DIR, exist_ok=True)
+    # Clean up existing installation first
+    if not cleanup_existing_installation():
+        print("\nError: Could not clean up existing installation")
+        sys.exit(1)
+
+    # Create directory structure
+    if not create_directory_structure():
+        print("\nError: Could not create directory structure")
+        sys.exit(1)
 
     # Check and install system dependencies
     deps_ok, missing_deps = check_system_dependencies()
     if not deps_ok:
+        print(f"\nMissing system dependencies: {', '.join(missing_deps)}")
+        print("Attempting to install them...")
         if not install_system_dependencies(missing_deps):
             print("\nError: Could not install all system dependencies")
             print("Please run manually: sudo apt-get install", " ".join(missing_deps))
@@ -171,18 +597,41 @@ def main():
             
     # Install NConvert
     if not install_nconvert():
+        print("\nError: NConvert installation failed")
         sys.exit(1)
         
     # Create virtual environment
     if not create_virtual_environment():
+        print("\nError: Virtual environment creation failed")
         sys.exit(1)
         
     # Install Python packages
     if not install_python_packages():
+        print("\nError: Python package installation failed")
         sys.exit(1)
 
-    print("\nInstallation completed successfully!")
-    print("You can now run the program using: ./NConvert-Bash.sh")
+    # Verify installation
+    if not verify_installation():
+        print("\nError: Installation verification failed")
+        sys.exit(1)
+
+    # Clean up temporary files
+    cleanup_temp_files()
+
+    print("\n" + "="*50)
+    print("Installation completed successfully!")
+    print("="*50)
+    print("Directory structure created:")
+    print(f"  - {DATA_DIR}")
+    print(f"  - {TEMP_DIR}")
+    print(f"  - {NCONVERT_DIR}")
+    print(f"  - {VENV_DIR}")
+    print("\nNConvert binary location:")
+    for root, dirs, files in os.walk(NCONVERT_DIR):
+        if 'nconvert' in files:
+            print(f"  - {os.path.join(root, 'nconvert')}")
+            break
+    print("\nYou can now run the program using: ./NConvert-Bash.sh")
 
 if __name__ == "__main__":
     main()
