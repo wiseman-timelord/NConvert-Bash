@@ -1,5 +1,5 @@
 # NConvert-Bash
-Status: Alpha (working on: converting a windows frontend/installer for "NConvert", to being a linux version, compatible with ubuntu 24.10)
+Status: Alpha (working on: primary testing)
 
 
 ### Description:
