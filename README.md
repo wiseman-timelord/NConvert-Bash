@@ -64,7 +64,8 @@ Press Enter to continue...
 - Linux - It will be tested on Ubuntu 24.10.
 - [NConvert](https://www.xnview.com/en/nconvert) - ~500 image formats supported (installed by installer).
 - Python 3.8+ - Compatible with what are now the lower versions of python.
-- Python Libraries - Installed from the created `.\requirements.txt`, you can inspect them there if you like.
+- Python Libraries - The `.\Installer.py` puts all required libraries to the `.\.venv`, you can inspect them there if you like.
+- System Dependencies - The `.\Installer.py` does check/install things such as, `tkinter` and `libgtk`.
 
 ### File Structure:
 - Files in package...
