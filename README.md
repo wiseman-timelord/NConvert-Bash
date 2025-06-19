@@ -32,7 +32,7 @@ Its a Python Gradio interface for converting MANY common/rare image formats to M
 Selection; Menu Options 1-3, Exit Bash = X: 
 
 ```
-- Validation is looking good...
+- Validation of Files/Libraries...
 ```
 ================================================================================
     NConvert-Bash - Validation
