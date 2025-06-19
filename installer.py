@@ -9,7 +9,7 @@ import tarfile
 import shutil
 import platform
 import time
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 # Directory structure
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -22,13 +22,101 @@ VENV_DIR = os.path.join(BASE_DIR, 'venv')
 NCONVERT_URL = "https://download.xnview.com/NConvert-linux64.tgz"
 NCONVERT_ARCHIVE = os.path.join(TEMP_DIR, 'NConvert-linux64.tgz')
 
-# System requirements
+# System requirements with Ubuntu 24.10 compatibility
 REQUIRED_SYSTEM_DEPS = {
-    'tar': {'ubuntu': 'tar', 'test': ['tar', '--version']},
-    'wget': {'ubuntu': 'wget', 'test': ['wget', '--version']},
-    'curl': {'ubuntu': 'curl', 'test': ['curl', '--version']},
-    'python3-venv': {'ubuntu': 'python3-venv', 'test': ['python3', '-m', 'venv', '--help']},
-    'python3-pip': {'ubuntu': 'python3-pip', 'test': ['python3', '-m', 'pip', '--version']}
+    # Core utilities
+    'tar': {
+        'packages': ['tar'], 
+        'test': ['tar', '--version']
+    },
+    'wget': {
+        'packages': ['wget'], 
+        'test': ['wget', '--version']
+    },
+    'curl': {
+        'packages': ['curl'], 
+        'test': ['curl', '--version']
+    },
+    
+    # Python environment
+    'python3-venv': {
+        'packages': ['python3-venv'], 
+        'test': ['python3', '-m', 'venv', '--help']
+    },
+    'python3-pip': {
+        'packages': ['python3-pip'], 
+        'test': ['python3', '-m', 'pip', '--version']
+    },
+    'python3-tk': {
+        'packages': ['python3-tk'], 
+        'test': ['python3', '-c', 'import tkinter; print("Tkinter available")']
+    },
+    'python3-dev': {
+        'packages': ['python3-dev'], 
+        'test': ['dpkg', '-s', 'python3-dev']
+    },
+    
+    # GTK3 stack - Ubuntu 24.10 compatibility
+    'libgtk-3-0': {
+        'packages': ['libgtk-3-0t64'],  # Ubuntu 24.04+ uses t64 suffix
+        'test': ['dpkg', '-l', 'libgtk-3-0t64']
+    },
+    'libgtk-3-dev': {
+        'packages': ['libgtk-3-dev'], 
+        'test': ['dpkg', '-s', 'libgtk-3-dev']
+    },
+    'gir1.2-gtk-3.0': {
+        'packages': ['gir1.2-gtk-3.0'], 
+        'test': ['dpkg', '-s', 'gir1.2-gtk-3.0']
+    },
+    
+    # GObject Introspection - Ubuntu 24.10 compatibility
+    'gobject-introspection': {
+        'packages': ['gobject-introspection'], 
+        'test': ['dpkg', '-s', 'gobject-introspection']
+    },
+    'libgirepository-dev': {
+        'packages': ['libgirepository1.0-dev'],  # Correct package for Ubuntu 24.10
+        'test': ['dpkg', '-s', 'libgirepository1.0-dev']
+    },
+    'python3-gi': {
+        'packages': ['python3-gi'], 
+        'test': ['dpkg', '-s', 'python3-gi']
+    },
+    
+    # Graphics dependencies
+    'libcairo2-dev': {
+        'packages': ['libcairo2-dev'], 
+        'test': ['dpkg', '-s', 'libcairo2-dev']
+    },
+    'libgdk-pixbuf2.0-dev': {
+        'packages': ['libgdk-pixbuf-2.0-dev'],  # Correct package name
+        'test': ['dpkg', '-s', 'libgdk-pixbuf-2.0-dev']
+    },
+    
+    # Build tools
+    'build-essential': {
+        'packages': ['build-essential'], 
+        'test': ['dpkg', '-s', 'build-essential']
+    },
+    'pkg-config': {
+        'packages': ['pkg-config'], 
+        'test': ['pkg-config', '--version']
+    },
+    'meson': {
+        'packages': ['meson'], 
+        'test': ['meson', '--version']
+    },
+    'ninja-build': {
+        'packages': ['ninja-build'], 
+        'test': ['ninja', '--version']
+    },
+    
+    # Python build dependencies - Ubuntu 24.10 compatibility
+    'python3-setuptools': {
+        'packages': ['python3-setuptools'],  # Replaces python3-distutils
+        'test': ['python3', '-c', 'import setuptools; print("setuptools available")']
+    }
 }
 
 # Python package requirements
@@ -36,8 +124,23 @@ REQUIRED_PACKAGES = [
     'gradio',
     'pandas==2.1.3',
     'numpy==1.26.0',
-    'psutil==6.1.1'
+    'psutil==6.1.1',
+    'tk',
+    'PyGObject' 
 ]
+
+def get_ubuntu_version() -> Tuple[str, str]:
+    """Get Ubuntu version information."""
+    try:
+        result = subprocess.run(['lsb_release', '-rs'], capture_output=True, text=True)
+        version = result.stdout.strip()
+        
+        result = subprocess.run(['lsb_release', '-cs'], capture_output=True, text=True)  
+        codename = result.stdout.strip()
+        
+        return version, codename
+    except:
+        return "unknown", "unknown"
 
 def cleanup_existing_installation():
     """Clean up any existing installation for fresh install."""
@@ -107,35 +210,91 @@ def cleanup_temp_files():
         return False
 
 def check_system_dependencies() -> Tuple[bool, List[str]]:
-    """Check for required system dependencies."""
+    """Check for required system dependencies with smart package resolution."""
     missing = []
+    available_packages = []
+    
     print("\nChecking system dependencies...")
+    ubuntu_version, ubuntu_codename = get_ubuntu_version()
+    print(f"Detected Ubuntu {ubuntu_version} ({ubuntu_codename})")
     
-    for dep, config in REQUIRED_SYSTEM_DEPS.items():
+    for dep_name, config in REQUIRED_SYSTEM_DEPS.items():
         try:
-            result = subprocess.run(
-                config['test'],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=10
-            )
-            if result.returncode != 0:
-                raise subprocess.CalledProcessError(result.returncode, config['test'])
-                
-            print(f"✓ {dep} is available")
-        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-            missing.append(config['ubuntu'])
-            print(f"✗ {dep} not found")
+            # Special handling for different test types
+            if dep_name == 'python3-tk':
+                result = subprocess.run(
+                    config['test'],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=10
+                )
+                if result.returncode != 0:
+                    raise subprocess.CalledProcessError(result.returncode, config['test'])
+            elif dep_name == 'python3-setuptools':
+                # Special test for setuptools
+                result = subprocess.run(
+                    config['test'],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=10
+                )
+                if result.returncode != 0:
+                    raise subprocess.CalledProcessError(result.returncode, config['test'])
+            elif 'dpkg' in config['test'][0]:
+                # Handle dpkg checks
+                if ' -l ' in ' '.join(config['test']):
+                    # Package listing check
+                    result = subprocess.run(
+                        config['test'],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        timeout=10
+                    )
+                    # Check if package is installed
+                    if result.returncode != 0 or "no packages found" in result.stdout:
+                        raise Exception(f"Package not installed: {dep_name}")
+                else:
+                    # Standard dpkg status check
+                    result = subprocess.run(
+                        config['test'],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        timeout=10
+                    )
+                    if result.returncode != 0:
+                        raise subprocess.CalledProcessError(result.returncode, config['test'])
+            else:
+                # Generic command check
+                result = subprocess.run(
+                    config['test'],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=10
+                )
+                if result.returncode != 0:
+                    raise subprocess.CalledProcessError(result.returncode, config['test'])
+                    
+            print(f"✓ {dep_name} is available")
+            
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired, Exception) as e:
+            # Add all packages in the config to missing list
+            missing.extend(config['packages'])
+            print(f"✗ {dep_name} not found (will install: {', '.join(config['packages'])})")
     
-    return (len(missing) == 0, missing)
+    return (len(missing) == 0, list(set(missing)))  # Remove duplicates
 
 def install_system_dependencies(packages: List[str]) -> bool:
-    """Install missing system packages using apt."""
+    """Install missing system packages using apt with better error handling."""
     if not packages:
         return True
         
     print(f"\nInstalling missing system packages: {', '.join(packages)}")
+    
     try:
         # Update package list
         print("Updating package list...")
@@ -146,7 +305,7 @@ def install_system_dependencies(packages: List[str]) -> bool:
             timeout=300
         )
         
-        # Install packages
+        # Install packages in a single command for efficiency
         print("Installing packages...")
         result = subprocess.run(
             ['sudo', 'apt-get', 'install', '-y'] + packages,
@@ -157,9 +316,29 @@ def install_system_dependencies(packages: List[str]) -> bool:
         
         print("✓ System packages installed successfully")
         return True
+        
     except subprocess.CalledProcessError as e:
-        print(f"✗ Failed to install system packages: {e}")
-        return False
+        print(f"✗ Package installation failed: {e}")
+        print("Attempting to install packages individually...")
+        
+        # Try installing packages one by one
+        success = True
+        for package in packages:
+            try:
+                print(f"Installing {package} individually...")
+                subprocess.run(
+                    ['sudo', 'apt-get', 'install', '-y', package],
+                    check=True,
+                    text=True,
+                    timeout=300
+                )
+                print(f"✓ Installed {package}")
+            except subprocess.CalledProcessError:
+                print(f"✗ Failed to install {package}")
+                success = False
+                
+        return success
+        
     except subprocess.TimeoutExpired:
         print("✗ Package installation timed out")
         return False
@@ -436,6 +615,7 @@ def install_nconvert() -> bool:
             return True
         else:
             print("✗ nconvert binary not found in extracted files")
+            return False
             
     except Exception as e:
         print(f"✗ NConvert installation failed: {e}")
@@ -444,8 +624,7 @@ def install_nconvert() -> bool:
             shutil.rmtree(NCONVERT_DIR)
         if os.path.exists(NCONVERT_ARCHIVE):
             os.remove(NCONVERT_ARCHIVE)
-    
-    return False
+        return False
 
 def create_virtual_environment() -> bool:
     """Create a Python virtual environment."""
@@ -471,100 +650,61 @@ def install_python_packages() -> bool:
     """Install required Python packages in virtual environment."""
     print("\nInstalling Python packages in virtual environment...")
     try:
-        # Use venv pip executable
         pip_executable = os.path.join(VENV_DIR, 'bin', 'pip')
-        
-        if not os.path.exists(pip_executable):
-            print(f"✗ Pip executable not found at {pip_executable}")
-            return False
         
         # Upgrade pip first
         print("Upgrading pip...")
-        subprocess.run([pip_executable, 'install', '--upgrade', 'pip'], 
-                      check=True, text=True, timeout=120)
-        print("✓ Upgraded pip")
-        
-        # Install each package individually for better error handling
-        for package in REQUIRED_PACKAGES:
-            print(f"Installing {package}...")
-            try:
-                result = subprocess.run(
-                    [pip_executable, 'install', package],
-                    check=True,
-                    text=True,
-                    timeout=300
-                )
-                print(f"✓ Installed {package}")
-            except subprocess.TimeoutExpired:
-                print(f"✗ Installation of {package} timed out")
-                return False
-        
-        print("✓ All Python packages installed successfully")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"✗ Failed to install Python packages: {e}")
-        return False
-
-def verify_installation() -> bool:
-    """Verify that all components are installed correctly."""
-    print("\nVerifying installation...")
-    
-    # Check NConvert
-    nconvert_path = None
-    for root, dirs, files in os.walk(NCONVERT_DIR):
-        if 'nconvert' in files:
-            nconvert_path = os.path.join(root, 'nconvert')
-            break
-    
-    if nconvert_path and os.path.isfile(nconvert_path) and os.access(nconvert_path, os.X_OK):
-        print("✓ NConvert binary is present and executable")
-        try:
-            # Test NConvert execution
-            result = subprocess.run([nconvert_path, '-help'], 
-                                  capture_output=True, text=True, timeout=10)
-            if result.returncode == 0 or 'nconvert' in result.stdout.lower():
-                print("✓ NConvert responds correctly")
-            else:
-                print("⚠ NConvert may not be working properly")
-        except Exception as e:
-            print(f"⚠ Could not test NConvert execution: {e}")
-    else:
-        print("✗ NConvert binary not found or not executable")
-        return False
-    
-    # Check virtual environment
-    venv_python = os.path.join(VENV_DIR, 'bin', 'python')
-    if os.path.isfile(venv_python):
-        print("✓ Virtual environment Python executable found")
-    else:
-        print("✗ Virtual environment Python not found")
-        return False
-    
-    # Check if required packages are installed
-    pip_executable = os.path.join(VENV_DIR, 'bin', 'pip')
-    try:
-        result = subprocess.run(
-            [pip_executable, 'list'],
-            capture_output=True,
-            text=True,
+        subprocess.run(
+            [pip_executable, 'install', '--upgrade', 'pip'],
             check=True,
-            timeout=30
+            text=True,
+            timeout=120
         )
-        installed_packages = result.stdout.lower()
         
+        # Create symlink for system PyGObject if it exists
+        gi_path = '/usr/lib/python3/dist-packages/gi'
+        venv_site_packages = os.path.join(VENV_DIR, 'lib', 
+            f'python{sys.version_info.major}.{sys.version_info.minor}', 
+            'site-packages')
+        gi_symlink = os.path.join(venv_site_packages, 'gi')
+        
+        if os.path.exists(gi_path) and not os.path.exists(gi_symlink):
+            try:
+                os.symlink(gi_path, gi_symlink)
+                print("✓ System PyGObject linked to virtual environment")
+            except Exception as e:
+                print(f"⚠️ Could not link PyGObject: {e}")
+
+        # Install remaining packages with retry logic
         for package in REQUIRED_PACKAGES:
-            package_name = package.split('==')[0].lower()
-            if package_name in installed_packages:
-                print(f"✓ {package_name} is installed")
-            else:
-                print(f"✗ {package_name} not found")
-                return False
+            if package == 'PyGObject':
+                # Skip PyGObject as we're using the system version
+                print("Skipping PyGObject installation (using system package)")
+                continue
                 
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-        print(f"✗ Could not verify Python packages: {e}")
+            print(f"Installing {package}...")
+            for attempt in range(3):
+                try:
+                    subprocess.run(
+                        [pip_executable, 'install', package],
+                        check=True,
+                        text=True,
+                        timeout=300
+                    )
+                    print(f"✓ Installed {package}")
+                    break
+                except subprocess.CalledProcessError as e:
+                    if attempt == 2:
+                        print(f"✗ Failed to install {package} after 3 attempts")
+                        return False
+                    print(f"⚠️ Retry {attempt+1}/3 for {package}...")
+                    time.sleep(2)
+        
+        return True
+        
+    except Exception as e:
+        print(f"✗ Package installation failed: {e}")
         return False
-    
-    return True
 
 def main():
     os.system('clear')
@@ -613,17 +753,12 @@ def main():
         print("\nError: Python package installation failed")
         sys.exit(1)
 
-    # Verify installation
-    if not verify_installation():
-        print("\nError: Installation verification failed")
-        sys.exit(1)
-
     # Clean up temporary files
     cleanup_temp_files()
 
-    print("\n" + "-"*50)
-    print("\nInstallation completed successfully!")
-    print("\nInstall Processes Finished\n\n")
+    print("\n" + "="*50)
+    print("\nInstallation processes completed successfully!")
+    print("\nRun the validation script to verify the installation.\n")
 
 if __name__ == "__main__":
     main()
