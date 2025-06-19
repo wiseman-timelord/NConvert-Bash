@@ -32,6 +32,33 @@ Its a Python Gradio interface for converting MANY common/rare image formats to M
 Selection; Menu Options 1-3, Exit Bash = X: 
 
 ```
+- Validation is looking good...
+```
+================================================================================
+    NConvert-Bash - Validation
+================================================================================
+
+Checking Directories...
+✓ Dir exists: data
+✓ Dir exists: NConvert-linux64
+✓ Dir exists: venv
+Checking Virtual Env...
+✓ Venv valid
+Checking NConvert...
+✓ NConvert valid
+Checking Packages...
+✓ Venv valid
+✓ gradio installed
+✓ pandas installed
+✓ numpy installed
+✓ psutil installed
+
+✓ All checks passed
+
+--------------------------------------------------------------------------------
+Press Enter to continue...
+
+```
 
 ## Requirements:
 - Linux - It will be tested on Ubuntu 24.10.
