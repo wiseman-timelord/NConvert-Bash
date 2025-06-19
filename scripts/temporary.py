@@ -15,7 +15,7 @@ FOLDER_LOCATION = WORKSPACE_PATH
 # Default source format
 FORMAT_FROM = "PSPIMAGE"
 # Default target format
-FORMAT_TO = "JPG"
+FORMAT_TO = "JPEG"
 # Default setting for deleting original files
 DELETE_FILES_AFTER = False
 
