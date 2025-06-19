@@ -42,17 +42,17 @@ Checking Directories...
 ✓ Dir exists: data
 ✓ Dir exists: NConvert-linux64
 ✓ Dir exists: venv
+✓ Dir exists: temp
 Checking Virtual Env...
 ✓ Venv valid
 Checking NConvert...
-✓ NConvert valid
+✓ NConvert present and executable
+Checking PyGObject Symlink...
+✓ PyGObject symlink valid
 Checking Packages...
 ✓ Venv valid
-✓ gradio installed
-✓ pandas installed
-✓ numpy installed
-✓ psutil installed
-
+✓ Libraries installed
+✓ Dependencies installed
 ✓ All checks passed
 
 --------------------------------------------------------------------------------
