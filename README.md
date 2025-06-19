@@ -61,7 +61,7 @@ Press Enter to continue...
 ```
 
 ## Requirements:
-- Linux - It will be tested on Ubuntu 24.10.
+- Linux - It will, be written for ubuntu 24 and be tested/fixed on Ubuntu 24.10.
 - [NConvert](https://www.xnview.com/en/nconvert) - ~500 image formats supported (installed by installer).
 - Python 3.8+ - Compatible with what are now the lower versions of python.
 - Python Libraries - The `.\Installer.py` puts all required libraries to the `.\.venv`, you can inspect them there if you like.
