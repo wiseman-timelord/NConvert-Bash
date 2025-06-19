@@ -3,7 +3,7 @@ Status: Alpha (working on: primary testing)
 
 
 ### Description:
-Its a Python Gradio interface for converting MANY common/rare image formats to MANY common/rare image formats, all made possible through `XnView MP` linux native command line capable viewer. The frontend/installer provides a user-friendly menu to set the source folder, input file format, and desired output format. The scripts ensures efficient and seamless conversion and management of image files, making it a practical tool for users needing to process many images in multiple common/rare formats
+Its a Python Gradio interface for converting ~500 common/rare image formats to ~500 common/rare image formats, all made possible through `NConvert` linux native command line tool. The frontend/installer provides a user-friendly menu to set the source folder, input file format, and desired output format. The scripts ensures efficient and seamless conversion and management of image files, making it a practical tool for users needing to process many images in multiple common/rare formats
 
 ### Preview:
 - Bash menu is looking good...
