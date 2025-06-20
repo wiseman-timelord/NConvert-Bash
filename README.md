@@ -1,5 +1,5 @@
 # NConvert-Bash
-Status: Alpha (working on: primary testing)
+Status: Working.
 
 
 ### Description:
@@ -90,4 +90,6 @@ Press Enter to continue...
 
 ### Development
 The current plan is...
-1. Testing/bugfixing/improving, until working.
+1. Improvement of UI.
+2. Idea to add additional tickbox fof "Popup Folder After Conversion".
+3. A Json to preserve the parameters of previous session, load on start / save on exit.
