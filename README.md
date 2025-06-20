@@ -7,7 +7,7 @@ Its a Python Gradio interface for converting ~500 common/rare image formats to ~
 
 ### Preview:
 - The NConvert-Batch Gradio WebUi...
-![Alternative text](https://github.com/wiseman-timelord/NConvertBash/blob/main/media/gradio_interface.jpg)
+![Alternative text](https://github.com/wiseman-timelord/NConvert-Bash/blob/main/media/gradio-interface.jpg?raw=true)
 - Bash menu is looking good...
 ```
 ================================================================================
