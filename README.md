@@ -72,7 +72,7 @@ Press Enter to continue...
 ### Notation
 - De-Confustion... Meaning 1: "Bash" - a `*.sh` Linux Bash file. Meaning 2: "Bash" - Bashful actions done upon/with something hammerlike. 
 - Thanks to, DeepSeek, Grok, Claude, Gpt, for assistance in manually prompted programming. 
-- Thanks to [XnView Software](https://www.xnview.com/en/) for, creating and hosting, [NConvert](https://www.xnview.com/en/nconvert/), the binary behind my frontend.
+- Thanks to [XnView Software](https://www.xnview.com/en/) for, creating and hosting, [NConvert](https://www.xnview.com/en/nconvert/), the command-line tool behind my frontend.
 - NConvert-Bash is the Lunux version of [NConvert-Batch](https://github.com/wiseman-timelord/NConvert-Batch).
 
 ### File Structure:
