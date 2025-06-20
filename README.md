@@ -3,7 +3,7 @@ Status: Working.
 
 
 ### Description:
-Its a Python Gradio interface for converting ~500 common/rare image formats to ~500 common/rare image formats, all made possible through `NConvert` linux native command line tool. The frontend/installer provides a user-friendly menu to set the source folder, input file format, and desired output format. The scripts ensures efficient and seamless conversion and management of image files, making it a practical tool for users needing to process many images in multiple common/rare formats
+Its a Python Gradio interface for converting ~500 common/rare image formats to ~500 common/rare image formats, all made possible through `NConvert` linux native command line tool. The frontend/installer provides a user-friendly menu to set the source folder, input file format, and desired output format. The scripts ensures efficient and seamless conversion and management of image files, making it a practical tool for users needing to process many images in multiple common/rare formats. 
 
 ### Preview:
 - The NConvert-Batch Gradio WebUi...
@@ -68,6 +68,9 @@ Press Enter to continue...
 - Python 3.8+ - Compatible with what are now the lower versions of python.
 - Python Libraries - The `.\Installer.py` puts all required libraries to the `.\.venv`, you can inspect them there if you like.
 - System Dependencies - Things such as, `tkinter` and `libgtk`. Check "REQUIRED_SYSTEM_DEPS" in `.\Installer.py` for the full list.
+
+### Notation
+- NConvert-Bash is the Lunux version of [NConvert-Batch](https://github.com/wiseman-timelord/NConvert-Batch).
 
 ### File Structure:
 - Files in package...
