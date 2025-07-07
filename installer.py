@@ -1,4 +1,5 @@
-# Script: `.\installer.py`
+# Script: `.\installer.py` 
+# Note: mantain Ubuntu 22.04-25.04 compatibility
 
 # Imports
 import os
@@ -22,7 +23,7 @@ VENV_DIR = os.path.join(BASE_DIR, 'venv')
 NCONVERT_URL = "https://download.xnview.com/NConvert-linux64.tgz"
 NCONVERT_ARCHIVE = os.path.join(TEMP_DIR, 'NConvert-linux64.tgz')
 
-# System requirements with Ubuntu 24.10 compatibility
+# System requirements with Ubuntu 22.04-25.04 compatibility
 REQUIRED_SYSTEM_DEPS = {
     # Core utilities
     'tar': {
@@ -56,7 +57,7 @@ REQUIRED_SYSTEM_DEPS = {
         'test': ['dpkg', '-s', 'python3-dev']
     },
     
-    # GTK3 stack - Ubuntu 24.10 compatibility
+    # GTK3 stack - Ubuntu 22.04-25.04 compatibility
     'libgtk-3-0': {
         'packages': ['libgtk-3-0t64'],  # Ubuntu 24.04+ uses t64 suffix
         'test': ['dpkg', '-l', 'libgtk-3-0t64']
@@ -70,13 +71,13 @@ REQUIRED_SYSTEM_DEPS = {
         'test': ['dpkg', '-s', 'gir1.2-gtk-3.0']
     },
     
-    # GObject Introspection - Ubuntu 24.10 compatibility
+    # GObject Introspection - Ubuntu 22.04-25.04 compatibility
     'gobject-introspection': {
         'packages': ['gobject-introspection'], 
         'test': ['dpkg', '-s', 'gobject-introspection']
     },
     'libgirepository-dev': {
-        'packages': ['libgirepository1.0-dev'],  # Correct package for Ubuntu 24.10
+        'packages': ['libgirepository1.0-dev'],  # Correct package for Ubuntu 22.04-25.04
         'test': ['dpkg', '-s', 'libgirepository1.0-dev']
     },
     'python3-gi': {
@@ -112,7 +113,7 @@ REQUIRED_SYSTEM_DEPS = {
         'test': ['ninja', '--version']
     },
     
-    # Python build dependencies - Ubuntu 24.10 compatibility
+    # Python build dependencies
     'python3-setuptools': {
         'packages': ['python3-setuptools'],  # Replaces python3-distutils
         'test': ['python3', '-c', 'import setuptools; print("setuptools available")']
@@ -122,11 +123,11 @@ REQUIRED_SYSTEM_DEPS = {
 # Python package requirements
 REQUIRED_PACKAGES = [
     'gradio',
-    'pandas==2.1.3',
-    'numpy==1.26.0',
-    'psutil==6.1.1',
+    'pandas>=2.3.0',  # Also needs Py3.13 support
+    'numpy>=2.0.0',   # Unified solution for all Python 3.9+
+    'psutil>=6.1.1',  # Already compatible
     'tk',
-    'PyGObject' 
+    'PyGObject'
 ]
 
 def get_ubuntu_version() -> Tuple[str, str]:

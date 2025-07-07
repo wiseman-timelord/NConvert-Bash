@@ -38,6 +38,12 @@ def main():
     print("NConvert-Bash - Main Program")
     print("="*80)
     
+    # Check for root privileges
+    if os.geteuid() == 0:
+        print("\nWARNING: Running with root privileges may cause browser issues")
+        print("Recommendation: Run without sudo for better experience")
+        print("If using sudo is required, manually open browser after launch")
+
     # Verify virtual environment exists
     if not os.path.exists(VENV_DIR):
         print("ERROR: Virtual environment not found. Please run the installer first.")
@@ -65,12 +71,11 @@ def main():
 
     # Launch Gradio interface
     try:
-        Timer(2, lambda: webbrowser.open(url)).start()
         demo.launch(
             server_name="localhost",
             server_port=port,
             share=False,
-            inbrowser=False,
+            inbrowser=False,  # Disable automatic browser opening
             show_error=True,
             quiet=False
         )
