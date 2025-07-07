@@ -53,7 +53,15 @@ def browse_folder():
 def find_files_to_convert():
     """Find all files matching the source format in the specified folder."""
     if not os.path.exists(FOLDER_LOCATION):
-        return []
+        try:
+            # Try to create as current user if possible
+            import pwd
+            uid = pwd.getpwnam(os.getlogin()).pw_uid
+            os.makedirs(FOLDER_LOCATION, exist_ok=True)
+            os.chown(FOLDER_LOCATION, uid, -1)
+        except Exception as e:
+            print(f"Error creating directory: {e}")
+            return []
     
     files = []
     try:

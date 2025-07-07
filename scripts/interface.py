@@ -41,7 +41,12 @@ def create_gradio_interface():
         return result
 
     def on_exit():
-        sys.exit(0)  # Allows cleanup handlers to run
+        """Handle program exit with root permission awareness."""
+        if os.geteuid() == 0:  # Check if running as root
+            print("\nWARNING: Running as root - using safer exit method")
+            os._exit(0)  # Immediate exit for root
+        else:
+            sys.exit(0)  # Normal exit for non-root
 
     # Create Gradio interface
     with gr.Blocks(title="NConvert-Bash Image Converter", theme=gr.themes.Default()) as demo:
