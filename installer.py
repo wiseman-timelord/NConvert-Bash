@@ -302,7 +302,7 @@ def install_system_dependencies(packages: List[str]) -> bool:
             ['sudo', 'apt-get', 'update'],
             check=True,
             text=True,
-            timeout=300
+            timeout=600
         )
         
         # Install packages in a single command for efficiency
