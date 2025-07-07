@@ -100,3 +100,4 @@ The current plan is...
 1. Improvement of UI.
 2. Idea to add additional tickbox fof "Popup Folder After Conversion".
 3. A Json to preserve the parameters of previous session, load on start / save on exit.
+4. Merge with NConvert-Batch, make dual mode python scripts, then have bash + batch files for launch with linux/windows argument.
