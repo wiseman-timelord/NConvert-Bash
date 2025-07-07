@@ -63,11 +63,9 @@ Press Enter to continue...
 ```
 
 ## Requirements:
-- Linux - It will bem written for and tested/fixed on, Ubuntu 24.10.
+- Linux - It is intended to be compatible with Ubuntu 22.04-25.04.
 - [NConvert](https://www.xnview.com/en/nconvert) - ~500 image formats supported (installed by installer).
-- Python 3.8+ - Compatible with what are now the lower versions of python.
-- Python Libraries - The `.\Installer.py` puts all required libraries to the `.\.venv`, you can inspect them there if you like.
-- System Dependencies - Things such as, `tkinter` and `libgtk`. Check "REQUIRED_SYSTEM_DEPS" in `.\Installer.py` for the full list.
+- Python 3.9-3.13 - Compatible with what are now the lower versions of python. Installer will install required Libraries.
 
 ### Notation
 - De-Confustion... Meaning 1: "Bash" - a `*.sh` Linux Bash file. Meaning 2: "Bash" - Bashful actions done upon/with something hammerlike. 
