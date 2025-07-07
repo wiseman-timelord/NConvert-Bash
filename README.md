@@ -65,7 +65,7 @@ Press Enter to continue...
 ## Requirements:
 - Linux - It is intended to be compatible with Ubuntu 22.04-25.04.
 - [NConvert](https://www.xnview.com/en/nconvert) - ~500 image formats supported (installed by installer).
-- Python 3.9-3.13 - Compatible with what are now the lower versions of python. Installer will install required Libraries.
+- Python - Compatible with versions 3.9-3.13, while NConvert-Bash v1.00 if Python 3.8-3.12. Installer will install required Libraries.
 
 ### Notation
 - De-Confustion... Meaning 1: "Bash" - a `*.sh` Linux Bash file. Meaning 2: "Bash" - Bashful actions done upon/with something hammerlike. 
